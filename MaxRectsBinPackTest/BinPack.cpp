@@ -1,4 +1,4 @@
-#include <RectangleBinPack/MaxRectsBinPack.h>
+#include "../MaxRectsBinPack.h"
 #include <cstdio>
 
 

@@ -1,4 +1,6 @@
 #include <cstdio>
+#include <cstdlib>
+#include <ctime>
 #include <stdint.h>
 
 #if defined(__unix__) || defined(__APPLE__) || defined (__CYGWIN__)
@@ -93,6 +95,9 @@ int main()
 		packed.push_back(r);
 	}
 	uint64_t t1 = tick();
+	const bool allDisjoint = AllRectsDisjoint(packed);
+	const double occupancy = pack.Occupancy();
 	printf("Packing %d rectangles took %f msecs. All rects disjoint: %s. Occupancy: %f\n",
-		(int)packed.size(), (t1 - t0) * 1000.0 / ticksPerSec(), AllRectsDisjoint(packed) ? "yes" : "NO!", pack.Occupancy());
+		(int)packed.size(), (t1 - t0) * 1000.0 / ticksPerSec(), allDisjoint ? "yes" : "NO!", occupancy);
+	return !packed.empty() && allDisjoint && occupancy > 0.0 && occupancy <= 1.0 ? 0 : 1;
 }

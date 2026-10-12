@@ -42,7 +42,7 @@ if(RECTANGLE_BIN_PACK_BUILD_TESTS)
 
     add_executable(MaxRectsBinPackTest test/MaxRectsBinPackTest.cpp)
     target_link_libraries(MaxRectsBinPackTest PRIVATE RectangleBinPack::RectangleBinPack)
-    add_test(NAME MaxRectsBinPackTest COMMAND MaxRectsBinPackTest)
+    add_test(NAME MaxRectsBinPackTest COMMAND MaxRectsBinPackTest --smoke)
 
     add_executable(RectangleBinPackSmokeTest test/SmokeTest.cpp)
     target_link_libraries(RectangleBinPackSmokeTest PRIVATE RectangleBinPack::RectangleBinPack)

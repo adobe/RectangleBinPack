@@ -1,5 +1,6 @@
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <ctime>
 #include <stdint.h>
 
@@ -78,9 +79,11 @@ bool AllRectsDisjoint(std::vector<Rect> &packed)
 	return true;
 }
 
-int main()
+int main(int argc, char **argv)
 {
-	MaxRectsBinPack pack(1024*8, 1024*8, true);
+	// Keep the full stress benchmark for manual runs, but bound the CI workload.
+	const int binSize = argc == 2 && std::strcmp(argv[1], "--smoke") == 0 ? 1024 : 1024*8;
+	MaxRectsBinPack pack(binSize, binSize, true);
 
 	std::vector<Rect> packed;
 	srand(12412);

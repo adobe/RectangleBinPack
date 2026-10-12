@@ -16,8 +16,7 @@ add_library(RectangleBinPack
 add_library(RectangleBinPack::RectangleBinPack ALIAS RectangleBinPack)
 target_compile_features(RectangleBinPack PUBLIC cxx_std_11)
 
-# Provide <RectangleBinPack/Foo.h> without moving the original headers.
-# Forwarding headers also allow flat and namespaced includes to be mixed safely.
+# Expose <RectangleBinPack/Foo.h> without moving the original headers.
 set(RECTANGLE_BIN_PACK_HEADERS
     GuillotineBinPack.h
     MaxRectsBinPack.h
@@ -27,13 +26,11 @@ set(RECTANGLE_BIN_PACK_HEADERS
     SkylineBinPack.h
 )
 foreach(header IN LISTS RECTANGLE_BIN_PACK_HEADERS)
-    set(RECTANGLE_BIN_PACK_HEADER "${CMAKE_CURRENT_SOURCE_DIR}/${header}")
-    configure_file(cmake/header.h.in
-        "${CMAKE_CURRENT_BINARY_DIR}/include/RectangleBinPack/${header}" @ONLY)
+    configure_file("${header}"
+        "${CMAKE_CURRENT_BINARY_DIR}/include/RectangleBinPack/${header}" COPYONLY)
 endforeach()
 
 target_include_directories(RectangleBinPack PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>
 )
 

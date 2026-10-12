@@ -18,7 +18,7 @@
 #endif
 
 #include <vector>
-#include "MaxRectsBinPack.h"
+#include <RectangleBinPack/MaxRectsBinPack.h>
 
 using namespace rbp;
 

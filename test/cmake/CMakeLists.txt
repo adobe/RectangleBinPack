@@ -10,6 +10,22 @@ foreach(target IN ITEMS MaxRectsBinPackTest RectangleBinPackSmokeTest RectangleB
     endif()
 endforeach()
 
+# Flat includes must not be available through the library's public include paths.
+get_target_property(include_dirs RectangleBinPack INTERFACE_INCLUDE_DIRECTORIES)
+foreach(include_dir IN LISTS include_dirs)
+    if(include_dir MATCHES "^\\$<BUILD_INTERFACE:(.*)>$")
+        list(APPEND CMAKE_REQUIRED_INCLUDES "${CMAKE_MATCH_1}")
+    else()
+        list(APPEND CMAKE_REQUIRED_INCLUDES "${include_dir}")
+    endif()
+endforeach()
+include(CheckIncludeFileCXX)
+unset(RECTANGLE_BIN_PACK_FLAT_HEADER CACHE)
+check_include_file_cxx("MaxRectsBinPack.h" RECTANGLE_BIN_PACK_FLAT_HEADER)
+if(RECTANGLE_BIN_PACK_FLAT_HEADER)
+    message(FATAL_ERROR "Use <RectangleBinPack/MaxRectsBinPack.h>, not a flat include")
+endif()
+
 add_executable(consumer ../SmokeTest.cpp)
 target_link_libraries(consumer PRIVATE RectangleBinPack::RectangleBinPack)
 add_test(NAME consumer COMMAND consumer)

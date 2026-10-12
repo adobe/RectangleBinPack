@@ -1,5 +1,3 @@
-// Exercise both existing flat includes and CMake's namespaced includes.
-#include "Rect.h"
 #include <RectangleBinPack/GuillotineBinPack.h>
 #include <RectangleBinPack/MaxRectsBinPack.h>
 #include <RectangleBinPack/Rect.h>

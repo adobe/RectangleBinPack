@@ -40,7 +40,7 @@ if(RECTANGLE_BIN_PACK_BUILD_TESTS)
     add_executable(MaxRectsBinPackTest test/MaxRectsBinPackTest.cpp)
     target_link_libraries(MaxRectsBinPackTest PRIVATE RectangleBinPack::RectangleBinPack)
     add_test(NAME MaxRectsBinPackTest
-        COMMAND MaxRectsBinPackTest $<$<CONFIG:Debug>:--quick>)
+        COMMAND MaxRectsBinPackTest $<$<AND:$<PLATFORM_ID:Windows>,$<CONFIG:Debug>>:--fast>)
 endif()
 
 if(RECTANGLE_BIN_PACK_BUILD_EXAMPLES)

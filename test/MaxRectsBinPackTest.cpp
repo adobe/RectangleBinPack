@@ -81,8 +81,8 @@ bool AllRectsDisjoint(std::vector<Rect> &packed)
 
 int main(int argc, char **argv)
 {
-	// Debug CI uses --quick; other builds run the full benchmark.
-	const int binSize = argc == 2 && std::strcmp(argv[1], "--quick") == 0 ? 1024 : 1024*8;
+	// Windows Debug CI uses --fast; other builds run the full benchmark.
+	const int binSize = argc == 2 && std::strcmp(argv[1], "--fast") == 0 ? 1024 : 1024*8;
 	MaxRectsBinPack pack(binSize, binSize, true);
 
 	std::vector<Rect> packed;

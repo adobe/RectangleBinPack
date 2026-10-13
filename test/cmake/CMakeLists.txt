@@ -28,4 +28,4 @@ endif()
 
 add_executable(consumer ../MaxRectsBinPackTest.cpp)
 target_link_libraries(consumer PRIVATE RectangleBinPack::RectangleBinPack)
-add_test(NAME consumer COMMAND consumer --smoke)
+add_test(NAME consumer COMMAND consumer $<$<CONFIG:Debug>:--quick>)

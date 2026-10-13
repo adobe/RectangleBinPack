@@ -81,8 +81,8 @@ bool AllRectsDisjoint(std::vector<Rect> &packed)
 
 int main(int argc, char **argv)
 {
-	// Keep the full stress benchmark for manual runs, but bound the CI workload.
-	const int binSize = argc == 2 && std::strcmp(argv[1], "--smoke") == 0 ? 1024 : 1024*8;
+	// Debug CI uses --quick; other builds run the full benchmark.
+	const int binSize = argc == 2 && std::strcmp(argv[1], "--quick") == 0 ? 1024 : 1024*8;
 	MaxRectsBinPack pack(binSize, binSize, true);
 
 	std::vector<Rect> packed;

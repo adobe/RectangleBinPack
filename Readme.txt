@@ -14,8 +14,6 @@ CMake provides the RectangleBinPack::RectangleBinPack target with
 <RectangleBinPack/Foo.h> includes. RECTANGLE_BIN_PACK_BUILD_TESTS and
 RECTANGLE_BIN_PACK_BUILD_EXAMPLES enable optional tests/examples; both default to OFF.
 
-To use these algorithms in Python, you can make use of Boost.Python to enable interoperability between the C++ algorithms and your Python code.
-
 CMake and Meson builds are available for other platforms.
 
 For more information, see a series of blog posts at

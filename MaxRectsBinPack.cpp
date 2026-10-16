@@ -16,6 +16,7 @@
 #include <cmath>
 
 #include "MaxRectsBinPack.h"
+#include "BinPackCommon.h"
 
 namespace rbp {
 
@@ -23,18 +24,25 @@ using namespace std;
 
 MaxRectsBinPack::MaxRectsBinPack()
 :binWidth(0),
-binHeight(0)
+binHeight(0),
+binAllowFlip(true),
+newFreeRectanglesLastSize(0)
 {
 }
 
-MaxRectsBinPack::MaxRectsBinPack(int width, int height, bool allowFlip)
+MaxRectsBinPack::MaxRectsBinPack(Int width, Int height, bool allowFlip)
 {
 	Init(width, height, allowFlip);
 }
 
-void MaxRectsBinPack::Init(int width, int height, bool allowFlip)
+void MaxRectsBinPack::Init(Int width, Int height, bool allowFlip)
 {
-	binAllowFlip = allowFlip;
+	if (!detail::IsValidBinSize(width, height))
+		width = height = 0;
+
+	binAllowFlip = width > 0 ? allowFlip : true;
+	newFreeRectanglesLastSize = 0;
+	newFreeRectangles.clear();
 	binWidth = width;
 	binHeight = height;
 
@@ -47,15 +55,19 @@ void MaxRectsBinPack::Init(int width, int height, bool allowFlip)
 	usedRectangles.clear();
 
 	freeRectangles.clear();
-	freeRectangles.push_back(n);
+	if (width > 0)
+		freeRectangles.push_back(n);
 }
 
-Rect MaxRectsBinPack::Insert(int width, int height, FreeRectChoiceHeuristic method)
+Rect MaxRectsBinPack::Insert(Int width, Int height, FreeRectChoiceHeuristic method)
 {
-	Rect newNode;
+	if (!detail::FitsBin(width, height, binWidth, binHeight, binAllowFlip))
+		return Rect{};
+
+	Rect newNode = {};
 	// Unused in this function. We don't need to know the score after finding the position.
-	int score1 = std::numeric_limits<int>::max();
-	int score2 = std::numeric_limits<int>::max();
+	Int score1 = std::numeric_limits<Int>::max();
+	Int score2 = std::numeric_limits<Int>::max();
 	switch(method)
 	{
 		case RectBestShortSideFit: newNode = FindPositionForNewNodeBestShortSideFit(width, height, score1, score2); break;
@@ -76,18 +88,22 @@ Rect MaxRectsBinPack::Insert(int width, int height, FreeRectChoiceHeuristic meth
 void MaxRectsBinPack::Insert(std::vector<RectSize> &rects, std::vector<Rect> &dst, FreeRectChoiceHeuristic method)
 {
 	dst.clear();
+	if (!detail::HasValidDimensions(rects) || binWidth == 0)
+		return;
 
 	while(rects.size() > 0)
 	{
-		int bestScore1 = std::numeric_limits<int>::max();
-		int bestScore2 = std::numeric_limits<int>::max();
-		int bestRectIndex = -1;
+		Int bestScore1 = std::numeric_limits<Int>::max();
+		Int bestScore2 = std::numeric_limits<Int>::max();
+		size_t bestRectIndex = rects.size();
 		Rect bestNode;
 
 		for(size_t i = 0; i < rects.size(); ++i)
 		{
-			int score1;
-			int score2;
+			Int score1;
+			Int score2;
+			if (!detail::FitsBin(rects[i].width, rects[i].height, binWidth, binHeight, binAllowFlip))
+				continue;
 			Rect newNode = ScoreRect(rects[i].width, rects[i].height, method, score1, score2);
 
 			if (score1 < bestScore1 || (score1 == bestScore1 && score2 < bestScore2))
@@ -99,7 +115,7 @@ void MaxRectsBinPack::Insert(std::vector<RectSize> &rects, std::vector<Rect> &ds
 			}
 		}
 
-		if (bestRectIndex == -1)
+		if (bestRectIndex == rects.size())
 			return;
 
 		PlaceRect(bestNode);
@@ -127,11 +143,11 @@ void MaxRectsBinPack::PlaceRect(const Rect &node)
 	usedRectangles.push_back(node);
 }
 
-Rect MaxRectsBinPack::ScoreRect(int width, int height, FreeRectChoiceHeuristic method, int &score1, int &score2) const
+Rect MaxRectsBinPack::ScoreRect(Int width, Int height, FreeRectChoiceHeuristic method, Int &score1, Int &score2) const
 {
-	Rect newNode;
-	score1 = std::numeric_limits<int>::max();
-	score2 = std::numeric_limits<int>::max();
+	Rect newNode = {};
+	score1 = std::numeric_limits<Int>::max();
+	score2 = std::numeric_limits<Int>::max();
 	switch(method)
 	{
 	case RectBestShortSideFit: newNode = FindPositionForNewNodeBestShortSideFit(width, height, score1, score2); break;
@@ -146,8 +162,8 @@ Rect MaxRectsBinPack::ScoreRect(int width, int height, FreeRectChoiceHeuristic m
 	// Cannot fit the current rectangle.
 	if (newNode.height == 0)
 	{
-		score1 = std::numeric_limits<int>::max();
-		score2 = std::numeric_limits<int>::max();
+		score1 = std::numeric_limits<Int>::max();
+		score2 = std::numeric_limits<Int>::max();
 	}
 
 	return newNode;
@@ -156,26 +172,29 @@ Rect MaxRectsBinPack::ScoreRect(int width, int height, FreeRectChoiceHeuristic m
 /// Computes the ratio of used surface area.
 double MaxRectsBinPack::Occupancy() const
 {
-	uint64_t usedSurfaceArea = 0;
+	if (binWidth == 0 || binHeight == 0)
+		return 0;
+
+	Int usedSurfaceArea = 0;
 	for(size_t i = 0; i < usedRectangles.size(); ++i)
 		usedSurfaceArea += usedRectangles[i].width * usedRectangles[i].height;
 
-	return (double)usedSurfaceArea / ((uint64_t)binWidth * binHeight);
+	return (double)usedSurfaceArea / (binWidth * binHeight);
 }
 
-Rect MaxRectsBinPack::FindPositionForNewNodeBottomLeft(int width, int height, int &bestY, int &bestX) const
+Rect MaxRectsBinPack::FindPositionForNewNodeBottomLeft(Int width, Int height, Int &bestY, Int &bestX) const
 {
 	Rect bestNode = {};
 
-	bestY = std::numeric_limits<int>::max();
-	bestX = std::numeric_limits<int>::max();
+	bestY = std::numeric_limits<Int>::max();
+	bestX = std::numeric_limits<Int>::max();
 
 	for(size_t i = 0; i < freeRectangles.size(); ++i)
 	{
 		// Try to place the rectangle in upright (non-flipped) orientation.
 		if (freeRectangles[i].width >= width && freeRectangles[i].height >= height)
 		{
-			int topSideY = freeRectangles[i].y + height;
+			Int topSideY = freeRectangles[i].y + height;
 			if (topSideY < bestY || (topSideY == bestY && freeRectangles[i].x < bestX))
 			{
 				bestNode.x = freeRectangles[i].x;
@@ -188,7 +207,7 @@ Rect MaxRectsBinPack::FindPositionForNewNodeBottomLeft(int width, int height, in
 		}
 		if (binAllowFlip && freeRectangles[i].width >= height && freeRectangles[i].height >= width)
 		{
-			int topSideY = freeRectangles[i].y + width;
+			Int topSideY = freeRectangles[i].y + width;
 			if (topSideY < bestY || (topSideY == bestY && freeRectangles[i].x < bestX))
 			{
 				bestNode.x = freeRectangles[i].x;
@@ -203,23 +222,23 @@ Rect MaxRectsBinPack::FindPositionForNewNodeBottomLeft(int width, int height, in
 	return bestNode;
 }
 
-Rect MaxRectsBinPack::FindPositionForNewNodeBestShortSideFit(int width, int height, 
-	int &bestShortSideFit, int &bestLongSideFit) const
+Rect MaxRectsBinPack::FindPositionForNewNodeBestShortSideFit(Int width, Int height,
+	Int &bestShortSideFit, Int &bestLongSideFit) const
 {
 	Rect bestNode = {};
 
-	bestShortSideFit = std::numeric_limits<int>::max();
-	bestLongSideFit = std::numeric_limits<int>::max();
+	bestShortSideFit = std::numeric_limits<Int>::max();
+	bestLongSideFit = std::numeric_limits<Int>::max();
 
 	for(size_t i = 0; i < freeRectangles.size(); ++i)
 	{
 		// Try to place the rectangle in upright (non-flipped) orientation.
 		if (freeRectangles[i].width >= width && freeRectangles[i].height >= height)
 		{
-			int leftoverHoriz = abs(freeRectangles[i].width - width);
-			int leftoverVert = abs(freeRectangles[i].height - height);
-			int shortSideFit = min(leftoverHoriz, leftoverVert);
-			int longSideFit = max(leftoverHoriz, leftoverVert);
+			Int leftoverHoriz = abs(freeRectangles[i].width - width);
+			Int leftoverVert = abs(freeRectangles[i].height - height);
+			Int shortSideFit = min(leftoverHoriz, leftoverVert);
+			Int longSideFit = max(leftoverHoriz, leftoverVert);
 
 			if (shortSideFit < bestShortSideFit || (shortSideFit == bestShortSideFit && longSideFit < bestLongSideFit))
 			{
@@ -234,10 +253,10 @@ Rect MaxRectsBinPack::FindPositionForNewNodeBestShortSideFit(int width, int heig
 
 		if (binAllowFlip && freeRectangles[i].width >= height && freeRectangles[i].height >= width)
 		{
-			int flippedLeftoverHoriz = abs(freeRectangles[i].width - height);
-			int flippedLeftoverVert = abs(freeRectangles[i].height - width);
-			int flippedShortSideFit = min(flippedLeftoverHoriz, flippedLeftoverVert);
-			int flippedLongSideFit = max(flippedLeftoverHoriz, flippedLeftoverVert);
+			Int flippedLeftoverHoriz = abs(freeRectangles[i].width - height);
+			Int flippedLeftoverVert = abs(freeRectangles[i].height - width);
+			Int flippedShortSideFit = min(flippedLeftoverHoriz, flippedLeftoverVert);
+			Int flippedLongSideFit = max(flippedLeftoverHoriz, flippedLeftoverVert);
 
 			if (flippedShortSideFit < bestShortSideFit || (flippedShortSideFit == bestShortSideFit && flippedLongSideFit < bestLongSideFit))
 			{
@@ -253,23 +272,23 @@ Rect MaxRectsBinPack::FindPositionForNewNodeBestShortSideFit(int width, int heig
 	return bestNode;
 }
 
-Rect MaxRectsBinPack::FindPositionForNewNodeBestLongSideFit(int width, int height, 
-	int &bestShortSideFit, int &bestLongSideFit) const
+Rect MaxRectsBinPack::FindPositionForNewNodeBestLongSideFit(Int width, Int height,
+	Int &bestShortSideFit, Int &bestLongSideFit) const
 {
 	Rect bestNode = {};
 
-	bestShortSideFit = std::numeric_limits<int>::max();
-	bestLongSideFit = std::numeric_limits<int>::max();
+	bestShortSideFit = std::numeric_limits<Int>::max();
+	bestLongSideFit = std::numeric_limits<Int>::max();
 
 	for(size_t i = 0; i < freeRectangles.size(); ++i)
 	{
 		// Try to place the rectangle in upright (non-flipped) orientation.
 		if (freeRectangles[i].width >= width && freeRectangles[i].height >= height)
 		{
-			int leftoverHoriz = abs(freeRectangles[i].width - width);
-			int leftoverVert = abs(freeRectangles[i].height - height);
-			int shortSideFit = min(leftoverHoriz, leftoverVert);
-			int longSideFit = max(leftoverHoriz, leftoverVert);
+			Int leftoverHoriz = abs(freeRectangles[i].width - width);
+			Int leftoverVert = abs(freeRectangles[i].height - height);
+			Int shortSideFit = min(leftoverHoriz, leftoverVert);
+			Int longSideFit = max(leftoverHoriz, leftoverVert);
 
 			if (longSideFit < bestLongSideFit || (longSideFit == bestLongSideFit && shortSideFit < bestShortSideFit))
 			{
@@ -284,10 +303,10 @@ Rect MaxRectsBinPack::FindPositionForNewNodeBestLongSideFit(int width, int heigh
 
 		if (binAllowFlip && freeRectangles[i].width >= height && freeRectangles[i].height >= width)
 		{
-			int leftoverHoriz = abs(freeRectangles[i].width - height);
-			int leftoverVert = abs(freeRectangles[i].height - width);
-			int shortSideFit = min(leftoverHoriz, leftoverVert);
-			int longSideFit = max(leftoverHoriz, leftoverVert);
+			Int leftoverHoriz = abs(freeRectangles[i].width - height);
+			Int leftoverVert = abs(freeRectangles[i].height - width);
+			Int shortSideFit = min(leftoverHoriz, leftoverVert);
+			Int longSideFit = max(leftoverHoriz, leftoverVert);
 
 			if (longSideFit < bestLongSideFit || (longSideFit == bestLongSideFit && shortSideFit < bestShortSideFit))
 			{
@@ -303,24 +322,26 @@ Rect MaxRectsBinPack::FindPositionForNewNodeBestLongSideFit(int width, int heigh
 	return bestNode;
 }
 
-Rect MaxRectsBinPack::FindPositionForNewNodeBestAreaFit(int width, int height, 
-	int &bestAreaFit, int &bestShortSideFit) const
+Rect MaxRectsBinPack::FindPositionForNewNodeBestAreaFit(Int width, Int height,
+	Int &bestAreaFit, Int &bestShortSideFit) const
 {
 	Rect bestNode = {};
 
-	bestAreaFit = std::numeric_limits<int>::max();
-	bestShortSideFit = std::numeric_limits<int>::max();
+	bestAreaFit = std::numeric_limits<Int>::max();
+	bestShortSideFit = std::numeric_limits<Int>::max();
 
 	for(size_t i = 0; i < freeRectangles.size(); ++i)
 	{
-		int areaFit = freeRectangles[i].width * freeRectangles[i].height - width * height;
+		if (!detail::FitsBin(width, height, freeRectangles[i].width, freeRectangles[i].height, binAllowFlip))
+			continue;
+		Int areaFit = freeRectangles[i].width * freeRectangles[i].height - width * height;
 
 		// Try to place the rectangle in upright (non-flipped) orientation.
 		if (freeRectangles[i].width >= width && freeRectangles[i].height >= height)
 		{
-			int leftoverHoriz = abs(freeRectangles[i].width - width);
-			int leftoverVert = abs(freeRectangles[i].height - height);
-			int shortSideFit = min(leftoverHoriz, leftoverVert);
+			Int leftoverHoriz = abs(freeRectangles[i].width - width);
+			Int leftoverVert = abs(freeRectangles[i].height - height);
+			Int shortSideFit = min(leftoverHoriz, leftoverVert);
 
 			if (areaFit < bestAreaFit || (areaFit == bestAreaFit && shortSideFit < bestShortSideFit))
 			{
@@ -335,9 +356,9 @@ Rect MaxRectsBinPack::FindPositionForNewNodeBestAreaFit(int width, int height,
 
 		if (binAllowFlip && freeRectangles[i].width >= height && freeRectangles[i].height >= width)
 		{
-			int leftoverHoriz = abs(freeRectangles[i].width - height);
-			int leftoverVert = abs(freeRectangles[i].height - width);
-			int shortSideFit = min(leftoverHoriz, leftoverVert);
+			Int leftoverHoriz = abs(freeRectangles[i].width - height);
+			Int leftoverVert = abs(freeRectangles[i].height - width);
+			Int shortSideFit = min(leftoverHoriz, leftoverVert);
 
 			if (areaFit < bestAreaFit || (areaFit == bestAreaFit && shortSideFit < bestShortSideFit))
 			{
@@ -354,16 +375,16 @@ Rect MaxRectsBinPack::FindPositionForNewNodeBestAreaFit(int width, int height,
 }
 
 /// Returns 0 if the two intervals i1 and i2 are disjoint, or the length of their overlap otherwise.
-int CommonIntervalLength(int i1start, int i1end, int i2start, int i2end)
+Int CommonIntervalLength(Int i1start, Int i1end, Int i2start, Int i2end)
 {
 	if (i1end < i2start || i2end < i1start)
 		return 0;
 	return min(i1end, i2end) - max(i1start, i2start);
 }
 
-int MaxRectsBinPack::ContactPointScoreNode(int x, int y, int width, int height) const
+Int MaxRectsBinPack::ContactPointScoreNode(Int x, Int y, Int width, Int height) const
 {
-	int score = 0;
+	Int score = 0;
 
 	if (x == 0 || x + width == binWidth)
 		score += height;
@@ -380,7 +401,7 @@ int MaxRectsBinPack::ContactPointScoreNode(int x, int y, int width, int height) 
 	return score;
 }
 
-Rect MaxRectsBinPack::FindPositionForNewNodeContactPoint(int width, int height, int &bestContactScore) const
+Rect MaxRectsBinPack::FindPositionForNewNodeContactPoint(Int width, Int height, Int &bestContactScore) const
 {
 	Rect bestNode = {};
 
@@ -391,7 +412,7 @@ Rect MaxRectsBinPack::FindPositionForNewNodeContactPoint(int width, int height, 
 		// Try to place the rectangle in upright (non-flipped) orientation.
 		if (freeRectangles[i].width >= width && freeRectangles[i].height >= height)
 		{
-			int score = ContactPointScoreNode(freeRectangles[i].x, freeRectangles[i].y, width, height);
+			Int score = ContactPointScoreNode(freeRectangles[i].x, freeRectangles[i].y, width, height);
 			if (score > bestContactScore)
 			{
 				bestNode.x = freeRectangles[i].x;
@@ -403,7 +424,7 @@ Rect MaxRectsBinPack::FindPositionForNewNodeContactPoint(int width, int height, 
 		}
 		if (binAllowFlip && freeRectangles[i].width >= height && freeRectangles[i].height >= width)
 		{
-			int score = ContactPointScoreNode(freeRectangles[i].x, freeRectangles[i].y, height, width);
+			Int score = ContactPointScoreNode(freeRectangles[i].x, freeRectangles[i].y, height, width);
 			if (score > bestContactScore)
 			{
 				bestNode.x = freeRectangles[i].x;

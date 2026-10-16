@@ -11,39 +11,43 @@
 */
 #pragma once
 
-#include <vector>
+#include "Rect.h"
 
 namespace rbp {
 
 class ShelfNextFitBinPack
 {
 public:
+	/// Initializes an empty bin.
+	ShelfNextFitBinPack();
+
 	struct Node
 	{
-		int x;
-		int y;
-		int width;
-		int height;
+		Int x;
+		Int y;
+		Int width;
+		Int height;
 
 		bool flipped;
 	};
 
-	void Init(int width, int height);
+	void Init(Int width, Int height);
 
-	Node Insert(int width, int height);
+	/// Invalid/oversized inputs leave state unchanged; an ordinary non-fit may close a shelf.
+	Node Insert(Int width, Int height);
 
 	/// Computes the ratio of used surface area.
 	float Occupancy() const;
 
 private:
-	int binWidth;
-	int binHeight;
+	Int binWidth;
+	Int binHeight;
 
-	int currentX;
-	int currentY;
-	int shelfHeight;
+	Int currentX;
+	Int currentY;
+	Int shelfHeight;
 
-	unsigned long usedSurfaceArea;
+	Int usedSurfaceArea;
 };
 
 }

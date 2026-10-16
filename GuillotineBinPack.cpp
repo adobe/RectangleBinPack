@@ -15,6 +15,7 @@
 #include <cmath>
 
 #include "GuillotineBinPack.h"
+#include "BinPackCommon.h"
 
 namespace rbp {
 
@@ -26,13 +27,16 @@ binHeight(0)
 {
 }
 
-GuillotineBinPack::GuillotineBinPack(int width, int height)
+GuillotineBinPack::GuillotineBinPack(Int width, Int height)
 {
 	Init(width, height);
 }
 
-void GuillotineBinPack::Init(int width, int height)
+void GuillotineBinPack::Init(Int width, Int height)
 {
+	if (!detail::IsValidBinSize(width, height))
+		width = height = 0;
+
 	binWidth = width;
 	binHeight = height;
 
@@ -51,15 +55,19 @@ void GuillotineBinPack::Init(int width, int height)
 	n.height = height;
 
 	freeRectangles.clear();
-	freeRectangles.push_back(n);
+	if (width > 0)
+		freeRectangles.push_back(n);
 }
 
 void GuillotineBinPack::Insert(std::vector<RectSize> &rects, bool merge, 
 	FreeRectChoiceHeuristic rectChoice, GuillotineSplitHeuristic splitMethod)
 {
+	if (!detail::HasValidDimensions(rects) || binWidth == 0)
+		return;
+
 	// Remember variables about the best packing choice we have made so far during the iteration process.
-	int bestFreeRect = 0;
-	int bestRect = 0;
+	size_t bestFreeRect = 0;
+	size_t bestRect = 0;
 	bool bestFlipped = false;
 
 	// Pack rectangles one at a time until we have cleared the rects array of all rectangles.
@@ -67,19 +75,21 @@ void GuillotineBinPack::Insert(std::vector<RectSize> &rects, bool merge,
 	while(rects.size() > 0)
 	{
 		// Stores the penalty score of the best rectangle placement - bigger=worse, smaller=better.
-		int bestScore = std::numeric_limits<int>::max();
+		Int bestScore = std::numeric_limits<Int>::max();
 
 		for(size_t i = 0; i < freeRectangles.size(); ++i)
 		{
 			for(size_t j = 0; j < rects.size(); ++j)
 			{
+				if (!detail::FitsBin(rects[j].width, rects[j].height, binWidth, binHeight))
+					continue;
 				// If this rectangle is a perfect match, we pick it instantly.
 				if (rects[j].width == freeRectangles[i].width && rects[j].height == freeRectangles[i].height)
 				{
 					bestFreeRect = i;
 					bestRect = j;
 					bestFlipped = false;
-					bestScore = std::numeric_limits<int>::min();
+					bestScore = std::numeric_limits<Int>::min();
 					i = freeRectangles.size(); // Force a jump out of the outer loop as well - we got an instant fit.
 					break;
 				}
@@ -89,14 +99,14 @@ void GuillotineBinPack::Insert(std::vector<RectSize> &rects, bool merge,
 					bestFreeRect = i;
 					bestRect = j;
 					bestFlipped = true;
-					bestScore = std::numeric_limits<int>::min();
+					bestScore = std::numeric_limits<Int>::min();
 					i = freeRectangles.size(); // Force a jump out of the outer loop as well - we got an instant fit.
 					break;
 				}
 				// Try if we can fit the rectangle upright.
 				else if (rects[j].width <= freeRectangles[i].width && rects[j].height <= freeRectangles[i].height)
 				{
-					int score = ScoreByHeuristic(rects[j].width, rects[j].height, freeRectangles[i], rectChoice);
+					Int score = ScoreByHeuristic(rects[j].width, rects[j].height, freeRectangles[i], rectChoice);
 					if (score < bestScore)
 					{
 						bestFreeRect = i;
@@ -108,7 +118,7 @@ void GuillotineBinPack::Insert(std::vector<RectSize> &rects, bool merge,
 				// If not, then perhaps flipping sideways will make it fit?
 				else if (rects[j].height <= freeRectangles[i].width && rects[j].width <= freeRectangles[i].height)
 				{
-					int score = ScoreByHeuristic(rects[j].height, rects[j].width, freeRectangles[i], rectChoice);
+					Int score = ScoreByHeuristic(rects[j].height, rects[j].width, freeRectangles[i], rectChoice);
 					if (score < bestScore)
 					{
 						bestFreeRect = i;
@@ -121,7 +131,7 @@ void GuillotineBinPack::Insert(std::vector<RectSize> &rects, bool merge,
 		}
 
 		// If we didn't manage to find any rectangle to pack, abort.
-		if (bestScore == std::numeric_limits<int>::max())
+		if (bestScore == std::numeric_limits<Int>::max())
 			return;
 
 		// Otherwise, we're good to go and do the actual packing.
@@ -337,11 +347,14 @@ void GuillotineBinPack::InsertMaxFitting(std::vector<RectSize> &rects, std::vect
 }
 */
 
-Rect GuillotineBinPack::Insert(int width, int height, bool merge, FreeRectChoiceHeuristic rectChoice, 
+Rect GuillotineBinPack::Insert(Int width, Int height, bool merge, FreeRectChoiceHeuristic rectChoice,
 	GuillotineSplitHeuristic splitMethod)
 {
+	if (!detail::FitsBin(width, height, binWidth, binHeight))
+		return Rect{};
+
 	// Find where to put the new rectangle.
-	int freeNodeIndex = 0;
+	size_t freeNodeIndex = 0;
 	Rect newRect = FindPositionForNewNode(width, height, rectChoice, &freeNodeIndex);
 
 	// Abort if we didn't have enough space in the bin.
@@ -368,9 +381,12 @@ Rect GuillotineBinPack::Insert(int width, int height, bool merge, FreeRectChoice
 /// Computes the ratio of used surface area to the total bin area.
 float GuillotineBinPack::Occupancy() const
 {
+	if (binWidth == 0 || binHeight == 0)
+		return 0;
+
 	///\todo The occupancy rate could be cached/tracked incrementally instead
 	///      of looping through the list of packed rectangles here.
-	unsigned long usedSurfaceArea = 0;
+	Int usedSurfaceArea = 0;
 	for(size_t i = 0; i < usedRectangles.size(); ++i)
 		usedSurfaceArea += usedRectangles[i].width * usedRectangles[i].height;
 
@@ -378,7 +394,7 @@ float GuillotineBinPack::Occupancy() const
 }
 
 /// Returns the heuristic score value for placing a rectangle of size width*height into freeRect. Does not try to rotate.
-int GuillotineBinPack::ScoreByHeuristic(int width, int height, const Rect &freeRect, FreeRectChoiceHeuristic rectChoice)
+Int GuillotineBinPack::ScoreByHeuristic(Int width, Int height, const Rect &freeRect, FreeRectChoiceHeuristic rectChoice)
 {
 	switch(rectChoice)
 	{
@@ -388,52 +404,52 @@ int GuillotineBinPack::ScoreByHeuristic(int width, int height, const Rect &freeR
 	case RectWorstAreaFit: return ScoreWorstAreaFit(width, height, freeRect);
 	case RectWorstShortSideFit: return ScoreWorstShortSideFit(width, height, freeRect);
 	case RectWorstLongSideFit: return ScoreWorstLongSideFit(width, height, freeRect);
-	default: assert(false); return std::numeric_limits<int>::max();
+	default: assert(false); return std::numeric_limits<Int>::max();
 	}
 }
 
-int GuillotineBinPack::ScoreBestAreaFit(int width, int height, const Rect &freeRect)
+Int GuillotineBinPack::ScoreBestAreaFit(Int width, Int height, const Rect &freeRect)
 {
 	return freeRect.width * freeRect.height - width * height;
 }
 
-int GuillotineBinPack::ScoreBestShortSideFit(int width, int height, const Rect &freeRect)
+Int GuillotineBinPack::ScoreBestShortSideFit(Int width, Int height, const Rect &freeRect)
 {
-	int leftoverHoriz = abs(freeRect.width - width);
-	int leftoverVert = abs(freeRect.height - height);
-	int leftover = min(leftoverHoriz, leftoverVert);
+	Int leftoverHoriz = abs(freeRect.width - width);
+	Int leftoverVert = abs(freeRect.height - height);
+	Int leftover = min(leftoverHoriz, leftoverVert);
 	return leftover;
 }
 
-int GuillotineBinPack::ScoreBestLongSideFit(int width, int height, const Rect &freeRect)
+Int GuillotineBinPack::ScoreBestLongSideFit(Int width, Int height, const Rect &freeRect)
 {
-	int leftoverHoriz = abs(freeRect.width - width);
-	int leftoverVert = abs(freeRect.height - height);
-	int leftover = max(leftoverHoriz, leftoverVert);
+	Int leftoverHoriz = abs(freeRect.width - width);
+	Int leftoverVert = abs(freeRect.height - height);
+	Int leftover = max(leftoverHoriz, leftoverVert);
 	return leftover;
 }
 
-int GuillotineBinPack::ScoreWorstAreaFit(int width, int height, const Rect &freeRect)
+Int GuillotineBinPack::ScoreWorstAreaFit(Int width, Int height, const Rect &freeRect)
 {
 	return -ScoreBestAreaFit(width, height, freeRect);
 }
 
-int GuillotineBinPack::ScoreWorstShortSideFit(int width, int height, const Rect &freeRect)
+Int GuillotineBinPack::ScoreWorstShortSideFit(Int width, Int height, const Rect &freeRect)
 {
 	return -ScoreBestShortSideFit(width, height, freeRect);
 }
 
-int GuillotineBinPack::ScoreWorstLongSideFit(int width, int height, const Rect &freeRect)
+Int GuillotineBinPack::ScoreWorstLongSideFit(Int width, Int height, const Rect &freeRect)
 {
 	return -ScoreBestLongSideFit(width, height, freeRect);
 }
 
-Rect GuillotineBinPack::FindPositionForNewNode(int width, int height, FreeRectChoiceHeuristic rectChoice, int *nodeIndex)
+Rect GuillotineBinPack::FindPositionForNewNode(Int width, Int height, FreeRectChoiceHeuristic rectChoice, size_t *nodeIndex)
 {
 	Rect bestNode;
 	memset(&bestNode, 0, sizeof(Rect));
 
-	int bestScore = std::numeric_limits<int>::max();
+	Int bestScore = std::numeric_limits<Int>::max();
 
 	/// Try each free rectangle to find the best one for placement.
 	for(size_t i = 0; i < freeRectangles.size(); ++i)
@@ -445,7 +461,7 @@ Rect GuillotineBinPack::FindPositionForNewNode(int width, int height, FreeRectCh
 			bestNode.y = freeRectangles[i].y;
 			bestNode.width = width;
 			bestNode.height = height;
-			bestScore = std::numeric_limits<int>::min();
+			bestScore = std::numeric_limits<Int>::min();
 			*nodeIndex = i;
 			debug_assert(disjointRects.Disjoint(bestNode));
 			break;
@@ -457,7 +473,7 @@ Rect GuillotineBinPack::FindPositionForNewNode(int width, int height, FreeRectCh
 			bestNode.y = freeRectangles[i].y;
 			bestNode.width = height;
 			bestNode.height = width;
-			bestScore = std::numeric_limits<int>::min();
+			bestScore = std::numeric_limits<Int>::min();
 			*nodeIndex = i;
 			debug_assert(disjointRects.Disjoint(bestNode));
 			break;
@@ -465,7 +481,7 @@ Rect GuillotineBinPack::FindPositionForNewNode(int width, int height, FreeRectCh
 		// Does the rectangle fit upright?
 		else if (width <= freeRectangles[i].width && height <= freeRectangles[i].height)
 		{
-			int score = ScoreByHeuristic(width, height, freeRectangles[i], rectChoice);
+			Int score = ScoreByHeuristic(width, height, freeRectangles[i], rectChoice);
 
 			if (score < bestScore)
 			{
@@ -481,7 +497,7 @@ Rect GuillotineBinPack::FindPositionForNewNode(int width, int height, FreeRectCh
 		// Does the rectangle fit sideways?
 		else if (height <= freeRectangles[i].width && width <= freeRectangles[i].height)
 		{
-			int score = ScoreByHeuristic(height, width, freeRectangles[i], rectChoice);
+			Int score = ScoreByHeuristic(height, width, freeRectangles[i], rectChoice);
 
 			if (score < bestScore)
 			{
@@ -501,8 +517,8 @@ Rect GuillotineBinPack::FindPositionForNewNode(int width, int height, FreeRectCh
 void GuillotineBinPack::SplitFreeRectByHeuristic(const Rect &freeRect, const Rect &placedRect, GuillotineSplitHeuristic method)
 {
 	// Compute the lengths of the leftover area.
-	const int w = freeRect.width - placedRect.width;
-	const int h = freeRect.height - placedRect.height;
+	const Int w = freeRect.width - placedRect.width;
+	const Int h = freeRect.height - placedRect.height;
 
 	// Placing placedRect into freeRect results in an L-shaped free area, which must be split into
 	// two disjoint rectangles. This can be achieved with by splitting the L-shape using a single line.

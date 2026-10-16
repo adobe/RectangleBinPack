@@ -22,11 +22,11 @@ public:
 	GuillotineBinPack();
 
 	/// Initializes a new bin of the given size.
-	GuillotineBinPack(int width, int height);
+	GuillotineBinPack(Int width, Int height);
 
 	/// (Re)initializes the packer to an empty bin of width x height units. Call whenever
 	/// you need to restart with a new bin.
-	void Init(int width, int height);
+	void Init(Int width, Int height);
 
 	/// Specifies the different choice heuristics that can be used when deciding which of the free subrectangles
 	/// to place the to-be-packed rectangle into.
@@ -59,7 +59,7 @@ public:
 	///		some extra time.
 	/// @param rectChoice The free rectangle choice heuristic rule to use.
 	/// @param splitMethod The free rectangle split heuristic rule to use.
-	Rect Insert(int width, int height, bool merge, FreeRectChoiceHeuristic rectChoice, GuillotineSplitHeuristic splitMethod);
+	Rect Insert(Int width, Int height, bool merge, FreeRectChoiceHeuristic rectChoice, GuillotineSplitHeuristic splitMethod);
 
 	/// Inserts a list of rectangles into the bin.
 	/// @param rects The list of rectangles to add. This list will be destroyed in the packing process.
@@ -77,11 +77,12 @@ public:
 	float Occupancy() const;
 
 	/// Returns the internal list of disjoint rectangles that track the free area of the bin. You may alter this vector
-	/// any way desired, as long as the end result still is a list of disjoint rectangles.
+	/// only while preserving nonnegative, in-bin geometry and disjoint free/used areas.
 	std::vector<Rect> &GetFreeRectangles() { return freeRectangles; }
 
 	/// Returns the list of packed rectangles. You may alter this vector at will, for example, you can move a Rect from
 	/// this list to the Free Rectangles list to free up space on-the-fly, but notice that this causes fragmentation.
+	/// All rectangles must remain in-bin and free/used lists must remain mutually non-overlapping.
 	std::vector<Rect> &GetUsedRectangles() { return usedRectangles; }
 
 	/// Performs a Rectangle Merge operation. This procedure looks for adjacent free rectangles and merges them if they
@@ -89,8 +90,8 @@ public:
 	void MergeFreeList();
 
 private:
-	int binWidth;
-	int binHeight;
+	Int binWidth;
+	Int binHeight;
 
 	/// Stores a list of all the rectangles that we have packed so far. This is used only to compute the Occupancy ratio,
 	/// so if you want to have the packer consume less memory, this can be removed.
@@ -109,19 +110,19 @@ private:
 	/// @param nodeIndex [out] The index of the free rectangle in the freeRectangles array into which the new
 	///		rect was placed.
 	/// @return A Rect structure that represents the placement of the new rect into the best free rectangle.
-	Rect FindPositionForNewNode(int width, int height, FreeRectChoiceHeuristic rectChoice, int *nodeIndex);
+	Rect FindPositionForNewNode(Int width, Int height, FreeRectChoiceHeuristic rectChoice, size_t *nodeIndex);
 
-	static int ScoreByHeuristic(int width, int height, const Rect &freeRect, FreeRectChoiceHeuristic rectChoice);
+	static Int ScoreByHeuristic(Int width, Int height, const Rect &freeRect, FreeRectChoiceHeuristic rectChoice);
 	// The following functions compute (penalty) score values if a rect of the given size was placed into the 
 	// given free rectangle. In these score values, smaller is better.
 
-	static int ScoreBestAreaFit(int width, int height, const Rect &freeRect);
-	static int ScoreBestShortSideFit(int width, int height, const Rect &freeRect);
-	static int ScoreBestLongSideFit(int width, int height, const Rect &freeRect);
+	static Int ScoreBestAreaFit(Int width, Int height, const Rect &freeRect);
+	static Int ScoreBestShortSideFit(Int width, Int height, const Rect &freeRect);
+	static Int ScoreBestLongSideFit(Int width, Int height, const Rect &freeRect);
 
-	static int ScoreWorstAreaFit(int width, int height, const Rect &freeRect);
-	static int ScoreWorstShortSideFit(int width, int height, const Rect &freeRect);
-	static int ScoreWorstLongSideFit(int width, int height, const Rect &freeRect);
+	static Int ScoreWorstAreaFit(Int width, Int height, const Rect &freeRect);
+	static Int ScoreWorstShortSideFit(Int width, Int height, const Rect &freeRect);
+	static Int ScoreWorstLongSideFit(Int width, Int height, const Rect &freeRect);
 
 	/// Splits the given L-shaped free rectangle into two new free rectangles after placedRect has been placed into it.
 	/// Determines the split axis by using the given heuristic.

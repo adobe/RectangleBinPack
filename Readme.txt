@@ -14,6 +14,13 @@ CMake provides the RectangleBinPack::RectangleBinPack target with
 <RectangleBinPack/Foo.h> includes. RECTANGLE_BIN_PACK_BUILD_TESTS and
 RECTANGLE_BIN_PACK_BUILD_EXAMPLES enable optional tests/examples; both default to OFF.
 
+Coordinates, dimensions, areas and scores use signed rbp::Int (std::int64_t).
+This changes the API/ABI (Rect is now 32 bytes); all consumers must rebuild.
+Positive bin sizes require W*H <= INT64_MAX and W+H <= INT64_MAX/2; other sizes
+reset to empty bins with occupancy 0. Invalid/oversized insertions return zero
+rectangles. Batches reject any nonpositive entry without consuming input or
+changing packer state (clearing the output vector where present).
+
 To use these algorithms in Python, you can make use of Boost.Python to enable interoperability between the C++ algorithms and your Python code.
 
 CMake and Meson builds are available for other platforms.

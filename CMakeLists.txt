@@ -18,6 +18,7 @@ target_compile_features(RectangleBinPack PUBLIC cxx_std_11)
 
 # Expose <RectangleBinPack/Foo.h> without moving the original headers.
 set(RECTANGLE_BIN_PACK_HEADERS
+    BinPackCommon.h
     GuillotineBinPack.h
     MaxRectsBinPack.h
     Rect.h

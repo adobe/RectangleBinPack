@@ -28,9 +28,9 @@ BOOST_PYTHON_MODULE(boost_binpacker_ext)
         .value("RectContactPointRule", MaxRectsBinPack::RectContactPointRule)
     ;
 
-    Rect (MaxRectsBinPack::*MaxRectsInsert)(int, int, MaxRectsBinPack::FreeRectChoiceHeuristic) = &MaxRectsBinPack::Insert;
+    Rect (MaxRectsBinPack::*MaxRectsInsert)(rbp::Int, rbp::Int, MaxRectsBinPack::FreeRectChoiceHeuristic) = &MaxRectsBinPack::Insert;
 
-    class_<MaxRectsBinPack>("MaxRectsBinPack", init<int, int>())
+    class_<MaxRectsBinPack>("MaxRectsBinPack", init<rbp::Int, rbp::Int>())
         .def(init<>())
         .def("init", &MaxRectsBinPack::Init) 
         .def("insert", MaxRectsInsert)
@@ -55,9 +55,9 @@ BOOST_PYTHON_MODULE(boost_binpacker_ext)
         .value("SplitLongerAxis", GuillotineBinPack::SplitLongerAxis)
     ;
 
-    Rect (GuillotineBinPack::*GuillotineInsert)(int, int, bool, GuillotineBinPack::FreeRectChoiceHeuristic, GuillotineBinPack::GuillotineSplitHeuristic) = &GuillotineBinPack::Insert;
+    Rect (GuillotineBinPack::*GuillotineInsert)(rbp::Int, rbp::Int, bool, GuillotineBinPack::FreeRectChoiceHeuristic, GuillotineBinPack::GuillotineSplitHeuristic) = &GuillotineBinPack::Insert;
 
-    class_<GuillotineBinPack>("GuillotineBinPack", init<int, int>())
+    class_<GuillotineBinPack>("GuillotineBinPack", init<rbp::Int, rbp::Int>())
         .def(init<>())
         .def("init", &GuillotineBinPack::Init) 
         .def("insert", GuillotineInsert)
@@ -75,7 +75,7 @@ BOOST_PYTHON_MODULE(boost_binpacker_ext)
         .value("ShelfWorstWidthFit", ShelfBinPack::ShelfWorstWidthFit)
     ;
 
-    class_<ShelfBinPack>("ShelfBinPack", init<int, int, bool>())
+    class_<ShelfBinPack>("ShelfBinPack", init<rbp::Int, rbp::Int, bool>())
         .def(init<>())
         .def("init", &ShelfBinPack::Init) 
         .def("insert", &ShelfBinPack::Insert)
@@ -88,9 +88,9 @@ BOOST_PYTHON_MODULE(boost_binpacker_ext)
         .value("LevelMinWasteFit", SkylineBinPack::LevelMinWasteFit)
     ;
 
-	Rect (SkylineBinPack::*SkylineInsert)(int, int, SkylineBinPack::LevelChoiceHeuristic) = &SkylineBinPack::Insert;
+	Rect (SkylineBinPack::*SkylineInsert)(rbp::Int, rbp::Int, SkylineBinPack::LevelChoiceHeuristic) = &SkylineBinPack::Insert;
 
-    class_<SkylineBinPack>("SkylineBinPack", init<int, int, bool>())
+    class_<SkylineBinPack>("SkylineBinPack", init<rbp::Int, rbp::Int, bool>())
         .def(init<>())
         .def("init", &SkylineBinPack::Init) 
         .def("insert", SkylineInsert)

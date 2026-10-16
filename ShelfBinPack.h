@@ -22,10 +22,10 @@ public:
 	/// Default ctor initializes a bin of size (0,0). Call Init() to init an instance.
 	ShelfBinPack();
 
-	ShelfBinPack(int width, int height, bool useWasteMap);
+	ShelfBinPack(Int width, Int height, bool useWasteMap);
 
 	/// Clears all previously packed rectangles and starts packing from scratch into a bin of the given size.
-	void Init(int width, int height, bool useWasteMap);
+	void Init(Int width, Int height, bool useWasteMap);
 
 	/// Defines different heuristic rules that can be used in the packing process.
 	enum ShelfChoiceHeuristic
@@ -42,20 +42,20 @@ public:
 	/// Inserts a single rectangle into the bin. The packer might rotate the rectangle, in which case the returned
 	/// struct will have the width and height values swapped.
 	/// @param method The heuristic rule to use for choosing a shelf if multiple ones are possible.
-	Rect Insert(int width, int height, ShelfChoiceHeuristic method);
+	Rect Insert(Int width, Int height, ShelfChoiceHeuristic method);
 
 	/// Computes the ratio of used surface area to the total bin area.
 	float Occupancy() const;
 
 private:
-	int binWidth;
-	int binHeight;
+	Int binWidth;
+	Int binHeight;
 
 	/// Stores the starting y-coordinate of the latest (topmost) shelf.
-	int currentY;
+	Int currentY;
 
 	/// Tracks the total consumed surface area.
-	unsigned long usedSurfaceArea;
+	Int usedSurfaceArea;
 
 	/// If true, the following GuillotineBinPack structure is used to recover the SHELF data structure from losing space.
 	bool useWasteMap;
@@ -66,13 +66,13 @@ private:
 	{
 		/// The x-coordinate that specifies where the used shelf space ends.
 		/// Space between [0, currentX[ has been filled with rectangles, [currentX, binWidth[ is still available for filling.
-		int currentX;
+		Int currentX;
 
 		/// The y-coordinate of where this shelf starts, inclusive.
-		int startY;
+		Int startY;
 
 		/// Specifices the height of this shelf. The topmost shelf is "open" and its height may grow.
-		int height;
+		Int height;
 
 		/// Lists all the rectangles in this shelf.
 		std::vector<Rect> usedRectangles;
@@ -86,22 +86,22 @@ private:
 
 	/// Returns true if the rectangle of size width*height fits on the given shelf, possibly rotated.
 	/// @param canResize If true, denotes that the shelf height may be increased to fit the object.
-	bool FitsOnShelf(const Shelf &shelf, int width, int height, bool canResize) const;
+	bool FitsOnShelf(const Shelf &shelf, Int width, Int height, bool canResize) const;
 
 	/// Measures and if desirable, flips width and height so that the rectangle fits the given shelf the best.
 	/// @param width [in,out] The width of the rectangle.
 	/// @param height [in,out] The height of the rectangle.
-	void RotateToShelf(const Shelf &shelf, int &width, int &height) const;
+	void RotateToShelf(const Shelf &shelf, Int &width, Int &height) const;
 
 	/// Adds the rectangle of size width*height into the given shelf, possibly rotated.
 	/// @param newNode [out] The added rectangle will be returned here.
-	void AddToShelf(Shelf &shelf, int width, int height, Rect &newNode);
+	void AddToShelf(Shelf &shelf, Int width, Int height, Rect &newNode);
 
 	/// Returns true if there is still room in the bin to start a new shelf of the given height.
-	bool CanStartNewShelf(int height) const;
+	bool CanStartNewShelf(Int height) const;
 
 	/// Creates a new shelf of the given starting height, which will become the topmost 'open' shelf.
-	void StartNewShelf(int startingHeight);
+	void StartNewShelf(Int startingHeight);
 };
 
 }

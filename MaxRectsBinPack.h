@@ -23,11 +23,11 @@ public:
 
 	/// Instantiates a bin of the given size.
 	/// @param allowFlip Specifies whether the packing algorithm is allowed to rotate the input rectangles by 90 degrees to consider a better placement.
-	MaxRectsBinPack(int width, int height, bool allowFlip = true);
+	MaxRectsBinPack(Int width, Int height, bool allowFlip = true);
 
 	/// (Re)initializes the packer to an empty bin of width x height units. Call whenever
 	/// you need to restart with a new bin.
-	void Init(int width, int height, bool allowFlip = true);
+	void Init(Int width, Int height, bool allowFlip = true);
 
 	/// Specifies the different heuristic rules that can be used when deciding where to place a new rectangle.
 	enum FreeRectChoiceHeuristic
@@ -46,14 +46,14 @@ public:
 	void Insert(std::vector<RectSize> &rects, std::vector<Rect> &dst, FreeRectChoiceHeuristic method);
 
 	/// Inserts a single rectangle into the bin, possibly rotated.
-	Rect Insert(int width, int height, FreeRectChoiceHeuristic method);
+	Rect Insert(Int width, Int height, FreeRectChoiceHeuristic method);
 
 	/// Computes the ratio of used surface area to the total bin area.
 	double Occupancy() const;
 
 private:
-	int binWidth;
-	int binHeight;
+	Int binWidth;
+	Int binHeight;
 
 	bool binAllowFlip;
 
@@ -67,19 +67,19 @@ private:
 	/// @param score1 [out] The primary placement score will be outputted here.
 	/// @param score2 [out] The secondary placement score will be outputted here. This isu sed to break ties.
 	/// @return This struct identifies where the rectangle would be placed if it were placed.
-	Rect ScoreRect(int width, int height, FreeRectChoiceHeuristic method, int &score1, int &score2) const;
+	Rect ScoreRect(Int width, Int height, FreeRectChoiceHeuristic method, Int &score1, Int &score2) const;
 
 	/// Places the given rectangle into the bin.
 	void PlaceRect(const Rect &node);
 
 	/// Computes the placement score for the -CP variant.
-	int ContactPointScoreNode(int x, int y, int width, int height) const;
+	Int ContactPointScoreNode(Int x, Int y, Int width, Int height) const;
 
-	Rect FindPositionForNewNodeBottomLeft(int width, int height, int &bestY, int &bestX) const;
-	Rect FindPositionForNewNodeBestShortSideFit(int width, int height, int &bestShortSideFit, int &bestLongSideFit) const;
-	Rect FindPositionForNewNodeBestLongSideFit(int width, int height, int &bestShortSideFit, int &bestLongSideFit) const;
-	Rect FindPositionForNewNodeBestAreaFit(int width, int height, int &bestAreaFit, int &bestShortSideFit) const;
-	Rect FindPositionForNewNodeContactPoint(int width, int height, int &contactScore) const;
+	Rect FindPositionForNewNodeBottomLeft(Int width, Int height, Int &bestY, Int &bestX) const;
+	Rect FindPositionForNewNodeBestShortSideFit(Int width, Int height, Int &bestShortSideFit, Int &bestLongSideFit) const;
+	Rect FindPositionForNewNodeBestLongSideFit(Int width, Int height, Int &bestShortSideFit, Int &bestLongSideFit) const;
+	Rect FindPositionForNewNodeBestAreaFit(Int width, Int height, Int &bestAreaFit, Int &bestShortSideFit) const;
+	Rect FindPositionForNewNodeContactPoint(Int width, Int height, Int &contactScore) const;
 
 	void InsertNewFreeRectangle(const Rect &newFreeRect);
 

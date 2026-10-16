@@ -10,9 +10,13 @@ The repository contains a build solution for Visual C++ 2010. It is configured t
 library of the algorithms. The preferred method of embedding these algorithms into your own code is to
 simply copy the code files into your own project and build them along your own build system. 
 
+CMake provides the RectangleBinPack::RectangleBinPack target with
+<RectangleBinPack/Foo.h> includes. RECTANGLE_BIN_PACK_BUILD_TESTS and
+RECTANGLE_BIN_PACK_BUILD_EXAMPLES enable optional tests/examples; both default to OFF.
+
 To use these algorithms in Python, you can make use of Boost.Python to enable interoperability between the C++ algorithms and your Python code.
 
-There are no build scripts for other platforms provided.
+CMake and Meson builds are available for other platforms.
 
 For more information, see a series of blog posts at
 

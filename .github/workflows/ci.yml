@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: ${{ matrix.os }} / ${{ matrix.build_type }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        build_type: [Debug, Release]
+
+    steps:
+      - name: Check out sources
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+
+      - name: Configure tests and example
+        run: >-
+          cmake -S . -B build
+          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+          -DRECTANGLE_BIN_PACK_BUILD_TESTS=ON
+          -DRECTANGLE_BIN_PACK_BUILD_EXAMPLES=ON
+
+      - name: Build
+        run: cmake --build build --config ${{ matrix.build_type }} --parallel 2
+
+      - name: Test
+        run: >-
+          ctest --test-dir build --build-config ${{ matrix.build_type }}
+          --output-on-failure --no-tests=error
+
+      - name: Configure library-only consumer
+        run: >-
+          cmake -S test/cmake -B build-consumer
+          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+
+      - name: Build library-only consumer
+        run: cmake --build build-consumer --config ${{ matrix.build_type }} --parallel 2
+
+      - name: Test library-only consumer
+        run: >-
+          ctest --test-dir build-consumer --build-config ${{ matrix.build_type }}
+          --output-on-failure --no-tests=error

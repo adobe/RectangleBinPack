@@ -1,4 +1,7 @@
 #include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <ctime>
 #include <stdint.h>
 
 #if defined(__unix__) || defined(__APPLE__) || defined (__CYGWIN__)
@@ -15,7 +18,7 @@
 #endif
 
 #include <vector>
-#include "MaxRectsBinPack.h"
+#include <RectangleBinPack/MaxRectsBinPack.h>
 
 using namespace rbp;
 
@@ -76,9 +79,11 @@ bool AllRectsDisjoint(std::vector<Rect> &packed)
 	return true;
 }
 
-int main()
+int main(int argc, char **argv)
 {
-	MaxRectsBinPack pack(1024*8, 1024*8, true);
+	// Windows Debug CI uses --fast; other builds run the full benchmark.
+	const int binSize = argc == 2 && std::strcmp(argv[1], "--fast") == 0 ? 1024 : 1024*8;
+	MaxRectsBinPack pack(binSize, binSize, true);
 
 	std::vector<Rect> packed;
 	srand(12412);
@@ -93,6 +98,9 @@ int main()
 		packed.push_back(r);
 	}
 	uint64_t t1 = tick();
+	const bool allDisjoint = AllRectsDisjoint(packed);
+	const double occupancy = pack.Occupancy();
 	printf("Packing %d rectangles took %f msecs. All rects disjoint: %s. Occupancy: %f\n",
-		(int)packed.size(), (t1 - t0) * 1000.0 / ticksPerSec(), AllRectsDisjoint(packed) ? "yes" : "NO!", pack.Occupancy());
+		(int)packed.size(), (t1 - t0) * 1000.0 / ticksPerSec(), allDisjoint ? "yes" : "NO!", occupancy);
+	return !packed.empty() && allDisjoint && occupancy > 0.0 && occupancy <= 1.0 ? 0 : 1;
 }

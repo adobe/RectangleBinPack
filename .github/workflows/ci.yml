@@ -27,6 +27,15 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Enable ASan and UBSan on Linux
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          echo 'CXXFLAGS=-fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer' >> "$GITHUB_ENV"
+          echo 'LDFLAGS=-fsanitize=address,undefined' >> "$GITHUB_ENV"
+          echo 'ASAN_OPTIONS=detect_leaks=1:halt_on_error=1' >> "$GITHUB_ENV"
+          echo 'UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1' >> "$GITHUB_ENV"
+
       - name: Configure tests and example
         run: >-
           cmake -S . -B build
@@ -54,42 +63,3 @@ jobs:
         run: >-
           ctest --test-dir build-consumer --build-config ${{ matrix.build_type }}
           --output-on-failure --no-tests=error
-
-  sanitizers:
-    name: Linux / ASan + UBSan
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    env:
-      CXX: clang++
-      CXXFLAGS: -fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer
-      LDFLAGS: -fsanitize=address,undefined
-      ASAN_OPTIONS: detect_leaks=1:halt_on_error=1
-      UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
-
-    steps:
-      - name: Check out sources
-        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-        with:
-          persist-credentials: false
-
-      - name: Configure sanitized tests and example
-        run: >-
-          cmake -S . -B build-sanitized
-          -DCMAKE_BUILD_TYPE=Debug
-          -DRECTANGLE_BIN_PACK_BUILD_TESTS=ON
-          -DRECTANGLE_BIN_PACK_BUILD_EXAMPLES=ON
-
-      - name: Build
-        run: cmake --build build-sanitized --parallel 2
-
-      - name: Test
-        run: ctest --test-dir build-sanitized --output-on-failure --no-tests=error
-
-      - name: Configure sanitized library-only consumer
-        run: cmake -S test/cmake -B build-sanitized-consumer -DCMAKE_BUILD_TYPE=Debug
-
-      - name: Build library-only consumer
-        run: cmake --build build-sanitized-consumer --parallel 2
-
-      - name: Test library-only consumer
-        run: ctest --test-dir build-sanitized-consumer --output-on-failure --no-tests=error

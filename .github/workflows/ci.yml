@@ -27,6 +27,15 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Enable ASan and UBSan on Linux
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          echo 'CXXFLAGS=-fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer' >> "$GITHUB_ENV"
+          echo 'LDFLAGS=-fsanitize=address,undefined' >> "$GITHUB_ENV"
+          echo 'ASAN_OPTIONS=detect_leaks=1:halt_on_error=1' >> "$GITHUB_ENV"
+          echo 'UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1' >> "$GITHUB_ENV"
+
       - name: Configure tests and example
         run: >-
           cmake -S . -B build

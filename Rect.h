@@ -5,6 +5,7 @@
 */
 #pragma once
 
+#include <cstdint>
 #include <vector>
 #include <cassert>
 #include <cstdlib>
@@ -20,18 +21,28 @@
 
 namespace rbp {
 
+/// Signed coordinates, dimensions, areas and scores. Changing to Int64 breaks ABI;
+/// consumers must rebuild. Geometry helpers require nonnegative dimensions and
+/// representable endpoints.
+using Int = std::int64_t;
+
+/// Packer input contract: positive bins require W*H <= INT64_MAX and
+/// W+H <= INT64_MAX/2. Unsupported sizes reset to an empty bin (occupancy 0).
+/// Insert rejects nonpositive or oversized requests with an all-zero result.
+/// Malformed batches clear dst, if present, but leave inputs and state unchanged.
+
 struct RectSize
 {
-	int width;
-	int height;
+	Int width;
+	Int height;
 };
 
 struct Rect
 {
-	int x;
-	int y;
-	int width;
-	int height;
+	Int x;
+	Int y;
+	Int width;
+	Int height;
 };
 
 /// Performs a lexicographic compare on (rect short side, rect long side).

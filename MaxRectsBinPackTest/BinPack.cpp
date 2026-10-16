@@ -1,5 +1,23 @@
 #include "../MaxRectsBinPack.h"
 #include <cstdio>
+#include <cerrno>
+#include <cinttypes>
+#include <limits>
+
+namespace {
+bool ParseDimension(const char *text, rbp::Int &value)
+{
+	errno = 0;
+	char *end = 0;
+	const std::intmax_t parsed = std::strtoimax(text, &end, 10);
+	if (errno == ERANGE || end == text || *end != '\0' ||
+		parsed < std::numeric_limits<rbp::Int>::min() ||
+		parsed > std::numeric_limits<rbp::Int>::max())
+		return false;
+	value = static_cast<rbp::Int>(parsed);
+	return true;
+}
+}
 
 
 int main(int argc, char **argv)
@@ -18,18 +36,26 @@ int main(int argc, char **argv)
 	
 	// Create a bin to pack to, use the bin size from command line.
 	MaxRectsBinPack bin;
-	int binWidth = atoi(argv[1]);
-	int binHeight = atoi(argv[2]);
-	printf("Initializing bin to size %dx%d.\n", binWidth, binHeight);
+	Int binWidth, binHeight;
+	if (!ParseDimension(argv[1], binWidth) || !ParseDimension(argv[2], binHeight))
+	{
+		fprintf(stderr, "Invalid Int64 bin dimension.\n");
+		return 1;
+	}
+	printf("Initializing bin to size %" PRId64 "x%" PRId64 ".\n", binWidth, binHeight);
 	bin.Init(binWidth, binHeight);
 	
 	// Pack each rectangle (w_i, h_i) the user inputted on the command line.
 	for(int i = 3; i < argc; i += 2)
 	{
 		// Read next rectangle to pack.
-		int rectWidth = atoi(argv[i]);
-		int rectHeight = atoi(argv[i+1]);
-		printf("Packing rectangle of size %dx%d: ", rectWidth, rectHeight);
+		Int rectWidth, rectHeight;
+		if (!ParseDimension(argv[i], rectWidth) || !ParseDimension(argv[i+1], rectHeight))
+		{
+			fprintf(stderr, "Invalid Int64 rectangle dimension.\n");
+			return 1;
+		}
+		printf("Packing rectangle of size %" PRId64 "x%" PRId64 ": ", rectWidth, rectHeight);
 
 		// Perform the packing.
 		MaxRectsBinPack::FreeRectChoiceHeuristic heuristic = MaxRectsBinPack::RectBestShortSideFit; // This can be changed individually even for each rectangle packed.
@@ -37,7 +63,7 @@ int main(int argc, char **argv)
 
 		// Test success or failure.
 		if (packedRect.height > 0)
-			printf("Packed to (x,y)=(%d,%d), (w,h)=(%d,%d). Free space left: %.2f%%\n", packedRect.x, packedRect.y, packedRect.width, packedRect.height, 100.f - bin.Occupancy()*100.f);
+			printf("Packed to (x,y)=(%" PRId64 ",%" PRId64 "), (w,h)=(%" PRId64 ",%" PRId64 "). Free space left: %.2f%%\n", packedRect.x, packedRect.y, packedRect.width, packedRect.height, 100.f - bin.Occupancy()*100.f);
 		else
 			printf("Failed! Could not find a proper position to pack this rectangle into. Skipping this one.\n");
 	}

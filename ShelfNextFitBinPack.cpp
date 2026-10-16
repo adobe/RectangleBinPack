@@ -17,13 +17,22 @@
 #include <cstring>
 
 #include "ShelfNextFitBinPack.h"
+#include "BinPackCommon.h"
 
 namespace rbp {
 
 using namespace std;
 
-void ShelfNextFitBinPack::Init(int width, int height)
+ShelfNextFitBinPack::ShelfNextFitBinPack()
 {
+	Init(0, 0);
+}
+
+void ShelfNextFitBinPack::Init(Int width, Int height)
+{
+	if (!detail::IsValidBinSize(width, height))
+		width = height = 0;
+
 	binWidth = width;
 	binHeight = height;
 
@@ -33,8 +42,11 @@ void ShelfNextFitBinPack::Init(int width, int height)
 	usedSurfaceArea = 0;
 }
 
-ShelfNextFitBinPack::Node ShelfNextFitBinPack::Insert(int width, int height)
+ShelfNextFitBinPack::Node ShelfNextFitBinPack::Insert(Int width, Int height)
 {
+	if (!detail::FitsBin(width, height, binWidth, binHeight))
+		return Node{};
+
 	Node newNode;
 	// There are three cases:
 	// 1. short edge <= long edge <= shelf height. Then store the long edge vertically.
@@ -53,7 +65,7 @@ ShelfNextFitBinPack::Node ShelfNextFitBinPack::Insert(int width, int height)
 	else
 		newNode.flipped = false;
 
-	if (currentX + width > binWidth)
+	if (width > binWidth - currentX)
 	{
 		currentX = 0;
 		currentY += shelfHeight;
@@ -69,14 +81,14 @@ ShelfNextFitBinPack::Node ShelfNextFitBinPack::Insert(int width, int height)
 	}
 
 	// If the rectangle doesn't fit in this orientation, try flipping.
-	if (width > binWidth || currentY + height > binHeight)
+	if (width > binWidth || height > binHeight - currentY)
 	{
 		swap(width, height);
 		newNode.flipped = !newNode.flipped;
 	}
 
 	// If flipping didn't help, return failure.
-	if (width > binWidth || currentY + height > binHeight)
+	if (width > binWidth || height > binHeight - currentY)
 	{
 		memset(&newNode, 0, sizeof(Node));
 		return newNode;
@@ -98,6 +110,9 @@ ShelfNextFitBinPack::Node ShelfNextFitBinPack::Insert(int width, int height)
 /// Computes the ratio of used surface area.
 float ShelfNextFitBinPack::Occupancy() const
 {
+	if (binWidth == 0 || binHeight == 0)
+		return 0;
+
 	return (float)usedSurfaceArea / (binWidth * binHeight);
 }
 
